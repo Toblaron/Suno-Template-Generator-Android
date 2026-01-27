@@ -23,7 +23,7 @@ fun MainScreen(
     var topic by remember { mutableStateOf("") }
     var genre by remember { mutableStateOf("Pop") }
     var mood by remember { mutableStateOf("Upbeat") }
-    var result by remember { mutableStateOf<SunoTemplate?>(null) }
+    var results by remember { mutableStateOf<List<SunoTemplate>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
@@ -32,7 +32,7 @@ fun MainScreen(
     val scrollState = rememberScrollState()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Suno Template Generator") }) }
+        topBar = { TopAppBar(title = { Text("Suno Generator (x3)") }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -53,7 +53,8 @@ fun MainScreen(
                 OutlinedTextField(
                     value = genre,
                     onValueChange = { genre = it },
-                    label = { Text("Genre") },
+                    label = { Text("Genre Override") },
+                    placeholder = { Text("Techno") },
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -82,7 +83,7 @@ fun MainScreen(
                         isLoading = true
                         errorMessage = null
                         try {
-                            result = generator.generateTemplate(topic, genre, mood)
+                            results = generator.generateTemplate(topic, genre, mood)
                         } catch (e: Exception) {
                             errorMessage = "Error: ${e.message}"
                         } finally {
@@ -93,15 +94,21 @@ fun MainScreen(
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isLoading) "Generating..." else "Generate Template")
+                Text(if (isLoading) "Generating 3 Variations..." else "Generate Templates")
             }
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            result?.let { template ->
-                ResultSection("Style Prompt", template.style_prompt, context)
-                Spacer(modifier = Modifier.height(16.dp))
-                ResultSection("Lyrics & Structure", template.lyrics, context)
+            results.forEachIndexed { index, template ->
+                Text(
+                    "Variation ${index + 1}", 
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+                ResultSection("Style ${index + 1}", template.style_prompt, context)
+                Spacer(modifier = Modifier.height(8.dp))
+                ResultSection("Lyrics ${index + 1}", template.lyrics, context)
+                Divider(modifier = Modifier.padding(vertical = 24.dp), thickness = 2.dp)
             }
         }
     }

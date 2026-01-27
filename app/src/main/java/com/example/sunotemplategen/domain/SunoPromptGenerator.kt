@@ -20,24 +20,35 @@ class SunoPromptGenerator(
     )
 
     private val systemInstruction = """
-        You are an expert song prompt generator for Suno AI and AISongGenerator.io.
-        Your goal is to create 100% syntactically correct templates.
+        You are a world-class Electronic Music Producer specializing in Melodic House, Techno, and Deep Groove.
+        Your goal is to create 3 DISTINCT, HIGH-FIDELITY song templates optimized for Suno AI/AISongGenerator.io.
         
-        RULES:
-        1. Style Prompt: Max 120 chars. Comma-separated. E.g., "Dark Synthwave, 80s retro, male vocals".
-        2. Lyrics: Max 2000 chars. Use these exact tags: [Intro], [Verse], [Chorus], [Bridge], [Outro].
-        3. Do not use markdown in the JSON values.
-        4. Output strictly valid JSON matching the schema: { "style_prompt": "...", "lyrics": "..." }
+        CRITICAL STYLE GUIDE:
+        - VIBE: "Upper class", expensive production, complex textures, rich, full, "Grooving as F***".
+        - AUDIO: Avoid "AI-sounding" genericism. Use terms like: "Analog warmth", "Tape saturation", "Moog Bass", "Roland TR-909", "Polyrhythmic percussion", "Spatial audio".
+        - GENRE FOCUS: Melodic House, Peak-time Techno, Deep Tech.
+        
+        STRICT FORMATTING RULES:
+        1. OUTPUT: A JSON ARRAY containing exactly 3 objects.
+        2. Style Prompt: MAX 120 characters. Intense, descriptive, comma-separated.
+        3. Lyrics/Structure: MAX 2000 characters. Use complex structures: [Intro], [Build-up], [Drop], [Breakdown], [Peak], [Outro].
+        
+        Example JSON Structure:
+        [
+          { "style_prompt": "...", "lyrics": "..." },
+          { "style_prompt": "...", "lyrics": "..." },
+          { "style_prompt": "...", "lyrics": "..." }
+        ]
     """.trimIndent()
 
-    suspend fun generateTemplate(topic: String, genre: String, mood: String): SunoTemplate {
+    suspend fun generateTemplate(topic: String, genre: String, mood: String): List<SunoTemplate> {
         val prompt = """
-            Generate a song template.
+            Generate 3 unique templates.
             Topic: $topic
-            Genre: $genre
+            Genre Override: $genre (Must blend with Techno/House/Groove)
             Mood: $mood
             
-            Return ONLY the JSON. Do not wrap in markdown code blocks.
+            Return ONLY the JSON ARRAY.
         """.trimIndent()
 
         val response = generativeModel.generateContent(
@@ -49,7 +60,7 @@ class SunoPromptGenerator(
 
         val responseText = response.text ?: throw Exception("Empty response from AI")
         
-        // Clean markdown code blocks if present (```json ... ``` or just ``` ... ```)
+        // Clean markdown code blocks
         val cleanJson = responseText
             .replace(Regex("^```(?:json)?\\s*", RegexOption.IGNORE_CASE), "")
             .replace(Regex("\\s*```$"), "")
@@ -59,12 +70,14 @@ class SunoPromptGenerator(
             Json { 
                 ignoreUnknownKeys = true 
                 isLenient = true 
-            }.decodeFromString(cleanJson)
+            }.decodeFromString<List<SunoTemplate>>(cleanJson)
         } catch (e: Exception) {
-            // Fallback for malformed JSON, but distinct from Network/API errors
-            SunoTemplate(
-                style_prompt = "$genre, $mood",
-                lyrics = "[Error parsing AI response]\n\nRaw output:\n$cleanJson"
+            // Fallback: Return a single error item in a list
+            listOf(
+                SunoTemplate(
+                    style_prompt = "Error Parsing",
+                    lyrics = "Raw output:\n$cleanJson\n\nError: ${e.message}"
+                )
             )
         }
     }
