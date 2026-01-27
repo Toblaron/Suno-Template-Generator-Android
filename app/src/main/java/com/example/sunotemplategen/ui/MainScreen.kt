@@ -25,6 +25,7 @@ fun MainScreen(
     var mood by remember { mutableStateOf("Upbeat") }
     var result by remember { mutableStateOf<SunoTemplate?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -65,15 +66,25 @@ fun MainScreen(
             }
             
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             
             Button(
                 onClick = {
                     scope.launch {
                         isLoading = true
+                        errorMessage = null
                         try {
                             result = generator.generateTemplate(topic, genre, mood)
                         } catch (e: Exception) {
-                            // Handle error
+                            errorMessage = "Error: ${e.message}"
                         } finally {
                             isLoading = false
                         }

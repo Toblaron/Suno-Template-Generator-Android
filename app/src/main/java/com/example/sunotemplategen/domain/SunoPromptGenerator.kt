@@ -37,7 +37,7 @@ class SunoPromptGenerator(
             Genre: $genre
             Mood: $mood
             
-            Return ONLY the JSON.
+            Return ONLY the JSON. Do not wrap in markdown code blocks.
         """.trimIndent()
 
         val response = generativeModel.generateContent(
@@ -47,16 +47,24 @@ class SunoPromptGenerator(
             }
         )
 
-        val responseText = response.text?.replace("```json", "")?.replace("```", "")?.trim() 
-            ?: throw Exception("Empty response from AI")
+        val responseText = response.text ?: throw Exception("Empty response from AI")
+        
+        // Clean markdown code blocks if present (```json ... ``` or just ``` ... ```)
+        val cleanJson = responseText
+            .replace(Regex("^```(?:json)?\\s*", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\s*```$"), "")
+            .trim()
 
         return try {
-            Json { ignoreUnknownKeys = true }.decodeFromString(responseText)
+            Json { 
+                ignoreUnknownKeys = true 
+                isLenient = true 
+            }.decodeFromString(cleanJson)
         } catch (e: Exception) {
-            // Fallback for malformed JSON
+            // Fallback for malformed JSON, but distinct from Network/API errors
             SunoTemplate(
                 style_prompt = "$genre, $mood",
-                lyrics = "[Error parsing JSON]\n\nRaw output:\n$responseText"
+                lyrics = "[Error parsing AI response]\n\nRaw output:\n$cleanJson"
             )
         }
     }
